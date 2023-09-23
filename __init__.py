@@ -9,7 +9,7 @@
         begin                : 2023-09-22
         copyright            : (C) 2023 by Yamate / PSS.co.,ltd.
         email                : arctictern265@gmail.com
-        git sha              : $Format:%H$
+        git sha              : https://github.com/Arctictern265/routing_example
  ***************************************************************************/
 
 /***************************************************************************

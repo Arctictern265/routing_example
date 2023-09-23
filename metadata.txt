@@ -13,7 +13,7 @@ email=arctictern265@gmail.com
 about=QGIS Routing Example Plugin.
 
 tracker=http://bugs
-repository=http://repo
+repository=https://github.com/Arctictern265/routing_example
 # End of mandatory metadata
 
 # Recommended items:

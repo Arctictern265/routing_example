@@ -21,15 +21,62 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtCore import (
+  QSettings, QTranslator, QCoreApplication, Qt, QPointF
+)
+from qgis.PyQt.QtGui import QIcon, QColor, QTextDocument
+from qgis.PyQt.QtWidgets import (
+  QAction,
+  QMessageBox
+)
+from qgis.core import (
+    QgsPointXY,
+    QgsVectorLayer,
+    QgsWkbTypes,
+    QgsGeometry,
+    QgsMarkerSymbol,
+    QgsTextAnnotation,
+    QgsProject
+)
+from qgis.gui import (
+  QgsMapToolEmitPoint,
+  QgsRubberBand
+)
+from qgis.analysis import (
+  QgsNetworkDistanceStrategy,
+  QgsVectorLayerDirector,
+  QgsGraphBuilder,
+  QgsGraphAnalyzer
+)
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .routing_example_dialog import RoutingExampleDialog
+from typing import List, Any
 import os.path
+
+
+def createShortestPath(layer: QgsVectorLayer, points: List) -> Any:
+    director = QgsVectorLayerDirector(
+        layer, -1, '', '', '', QgsVectorLayerDirector.DirectionBoth)
+    director.addStrategy(QgsNetworkDistanceStrategy())
+    builder = QgsGraphBuilder(layer.sourceCrs())
+    tiedPoints = director.makeGraph(builder, points)
+    tStart, tStop = tiedPoints
+    graph = builder.graph()
+    idxStart = graph.findVertex(tStart)
+    idxEnd = graph.findVertex(tStop)
+    (tree, costs) = QgsGraphAnalyzer.dijkstra(
+        graph, idxStart, 0)
+    if tree[idxEnd] == -1:
+        return (False, "no route found", [])
+    route = [graph.vertex(idxEnd).point()]
+    while idxEnd != idxStart:
+        idxEnd = graph.edge(tree[idxEnd]).fromVertex()
+        route.insert(0, graph.vertex(idxEnd).point())
+
+    return (True, "", route)
 
 
 class RoutingExample:
@@ -66,6 +113,9 @@ class RoutingExample:
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
         self.first_start = None
+
+        self.points = []
+        self.rubberBand = QgsRubberBand(self.iface.mapCanvas(), QgsWkbTypes.LineGeometry)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -197,4 +247,47 @@ class RoutingExample:
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
-            pass
+            self.layer = self.dlg.mMapLayerComboBox.currentLayer()
+            self.tool = QgsMapToolEmitPoint(self.iface.mapCanvas())
+            self.tool.canvasClicked.connect(self.registerPoints)
+            self.iface.mapCanvas().setMapTool(self.tool)
+
+    def registerPoints(self, point: QgsPointXY, button: Qt.MouseButton):
+        if button == Qt.LeftButton:
+            self.points.append(point)
+            if len(self.points) == 1:
+                self.placeStartPos(point)
+            elif len(self.points) == 2:
+                res, errorMsg, route = createShortestPath(self.layer, self.points)
+                if res == False:
+                    QMessageBox.information(
+                        self.iface.mainWindow(), "info", errorMsg)
+                    self.points.clear()
+                    return
+                
+                self.rubberBand.reset(QgsWkbTypes.LineGeometry)
+                self.rubberBand.setStrokeColor(QColor.fromRgb(0, 255, 0, 128))
+                self.rubberBand.setWidth(4.0)
+                self.rubberBand.setToGeometry(QgsGeometry.fromPolylineXY(route))
+                self.points.clear()
+                QgsProject.instance().annotationManager().clear()
+        else:
+            self.points.clear()
+            self.rubberBand.reset(QgsWkbTypes.LineGeometry)
+            QgsProject.instance().annotationManager().clear()
+
+        self.iface.mapCanvas().refresh()
+
+    def placeStartPos(self, pos: QgsPointXY):
+        markerProp = {"color": "0,255,0", "size": "3.0", "outline_width": "0.2", "outline_color": "0,0,0"}
+        markerSymbol = QgsMarkerSymbol.createSimple(markerProp)
+        doc = QTextDocument()
+        doc.setHtml("<style>h1 {font: 24pt bold; color: black;}</style><h1>start point</h1>")
+        annotation = QgsTextAnnotation()
+        annotation.setDocument(doc)
+        annotation.setMapPosition(pos)
+        annotation.setMarkerSymbol(markerSymbol)
+        annotation.setFrameOffsetFromReferencePoint(QPointF(20, -30))
+        annotation.setMapPositionCrs(self.iface.mapCanvas().mapSettings().destinationCrs())
+        QgsProject.instance().annotationManager().addAnnotation(annotation)
+
