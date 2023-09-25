@@ -22,4 +22,10 @@ https://github.com/Arctictern265/routing_example/blob/files/map.gpkg
 
 ![select layer dlg](https://github.com/Arctictern265/routing_example/blob/files/select_layer_dlg.png)
 
+選択後、［OK］ボタンを押すとカーソルが十字に変化します。ルート検索を実行するには、まずキャンバスから始点をマウスの左ボタンでクリックします。クリックすると下図のようなマーカーが表示されます。
+
+![start point flag](https://github.com/Arctictern265/routing_example/blob/files/start_point_flag.png)
+
+続いて終点となる点をマウスの左ボタンでクリックします。クリックと同時に検索が実行され、下図のようにルートが表示されます。
+
 
