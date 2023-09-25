@@ -26,6 +26,10 @@ https://github.com/Arctictern265/routing_example/blob/files/map.gpkg
 
 ![start point flag](https://github.com/Arctictern265/routing_example/blob/files/start_point_flag.png)
 
-続いて終点となる点をマウスの左ボタンでクリックします。クリックと同時に検索が実行され、下図のようにルートが表示されます。
+続いて終点となる点をマウスの左ボタンでクリックします。クリックと同時に検索が実行され、下図のようにルート検索結果が緑色で表示されます。
+
+![routing result](https://github.com/Arctictern265/routing_example/blob/files/routing_result.png)
+
+検索結果を消去、またはルート検索をキャンセルする場合はキャンバス上でマウスの右ボタンを押します。
 
 
